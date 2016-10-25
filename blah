@@ -9,7 +9,7 @@ from netaddr import IPNetwork, IPAddress
 from scapy.all import *
 import codecs
 import re
-from uiid import getnode as get_mac
+from uuid import getnode as get_mac
 
 mac=get_mac()
 nmac=hex(mac)
@@ -25,7 +25,7 @@ def arp():
   ip_list = []
   for interface in ni.interfaces():
     for link in ni.ifaddresses(interface)[AF_INET]:
-      ip_list.append(link['addr']
+      ip_list.append(link['addr'])
   rawSocket = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.htons(0x0003))
 
   while True:
@@ -34,7 +34,7 @@ def arp():
       blah = False
       for i in ip_list:
         if socket.inet_ntoa(packet[38:42]) == i:
-        blah = True
+          blah = True
       if blah == True and packet[21:22] == b'\x01':
         if packet[12:14] != b'\x08\x06':
           continue
@@ -48,35 +48,35 @@ def icmp():
   while True:
     raw_data, addr = conn.recvfrom(65535)
     dest_mac, src_mac, eth_proto, data = ethernet(raw_data)
-    if eth_proto == 0
+    if eth_proto == 0:
       (version, header_length, ttl, proto, src, target, data) = ipv4_packet(data)
 
       if proto == 1:
-      icmp_type, code, checksum, packet_id, sequence, data = icmp_packet(data)
-      zero = struct.pack('>h',0)
-      dest_ip = socket.inet_ntoa(raw_data[30:34])
-      ip_bytes = socket.inet_aton(ni.ifaddresses(addr[0])[2][0]['addr']
-      ip_notbytes = ni.ifaddresses(addr[0])[2][0]['addr']
-      table = _RtTable(addr[0])
-      router1 = _RtTable('r1')
-      router2 = _RtTable('r2')
+        icmp_type, code, checksum, packet_id, sequence, data = icmp_packet(data)
+        zero = struct.pack('>h',0)
+        dest_ip = socket.inet_ntoa(raw_data[30:34])
+        ip_bytes = socket.inet_aton(ni.ifaddresses(addr[0])[2][0]['addr'])
+        ip_notbytes = ni.ifaddresses(addr[0])[2][0]['addr']
+        table = _RtTable(addr[0])
+        router1 = _RtTable('r1')
+        router2 = _RtTable('r2')
       
-      print(addr)
-      for entry in table:
-        if(entry is not ''):
-          check = re.split(' - | ', entry)
-          if IPAddress(dest_ip) in IPNetwork(check[0]):
-            if(check[0] == "10.3.0.0/16"):
-              ans = sr1(ARP(op=ARP.who_has, psrc=ip_notbytes, pdst=check[1]))
-            if(check[0] == "10.1.0.0/16"):
-              ans = sr1(ARP(op=ARP.who_has, psrc=ip_notbytes, pdst=check[1]))
+        print(addr)
+        for entry in table:
+          if(entry is not ''):
+            check = re.split(' - | ', entry)
+            if IPAddress(dest_ip) in IPNetwork(check[0]):
+              if(check[0] == "10.3.0.0/16"):
+                ans = sr1(ARP(op=ARP.who_has, psrc=ip_notbytes, pdst=check[1]))
+              if(check[0] == "10.1.0.0/16"):
+                ans = sr1(ARP(op=ARP.who_has, psrc=ip_notbytes, pdst=check[1]))
 
-      #for entry in router2:
-      #if(entry is not ''):
-        #check = re.split(' - | ', entry)
-        #if IPAddress(dest_ip) in IPNetwork(check[0]):
+        #for entry in router2:
+          #if(entry is not ''):
+            #check = re.split(' - | ', entry)
+            #if IPAddress(dest_ip) in IPNetwork(check[0]):
 
-      conn.sendto(raw_data[6:12] + raw_data[0:6] + raw_data[12:26] + raw_data[30:34] + raw_data[26:30] + zero[1:] + raw_data[35:], addr)
+        conn.sendto(raw_data[6:12] + raw_data[0:6] + raw_data[12:26] + raw_data[30:34] + raw_data[26:30] + zero[1:] + raw_data[35:], addr)
 
 def icmp_packet(data):
   pktFormat = 'bbHHhd'
