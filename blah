@@ -1,0 +1,126 @@
+#!usr/bin/python3.4
+import socket
+import struct
+import threading
+import binascii
+import netifaces as ni
+from netifaces import AF_INET
+from netaddr import IPNetwork, IPAddress
+from scapy.all import *
+import codecs
+import re
+from uiid import getnode as get_mac
+
+mac=get_mac()
+nmac=hex(mac)
+nmac = nmac[2:]
+l = bytes.fromhex(nmac)
+blah = False
+
+def master():
+  threading.Thread(target = arp, args = ()).start()
+  threading.Thread(target = icmp, args = ()).start()
+
+def arp():
+  ip_list = []
+  for interface in ni.interfaces():
+    for link in ni.ifaddresses(interface)[AF_INET]:
+      ip_list.append(link['addr']
+  rawSocket = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.htons(0x0003))
+
+  while True:
+    packet, addr = rawSocket.recvfrom(2048)
+    if packet:
+      blah = False
+      for i in ip_list:
+        if socket.inet_ntoa(packet[38:42]) == i:
+        blah = True
+      if blah == True and packet[21:22] == b'\x01':
+        if packet[12:14] != b'\x08\x06':
+          continue
+        zero = struct.pack('>h',2)
+        d = packet[6:12] + l + packet[12:20] + zero + l + packet[38:] + packet[32:38] + packet[28:32]
+        rawSocket.sendto(d,addr)
+        blah = False
+
+def icmp():
+  conn = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.ntohs(3))
+  while True:
+    raw_data, addr = conn.recvfrom(65535)
+    dest_mac, src_mac, eth_proto, data = ethernet(raw_data)
+    if eth_proto == 0
+      (version, header_length, ttl, proto, src, target, data) = ipv4_packet(data)
+
+      if proto == 1:
+      icmp_type, code, checksum, packet_id, sequence, data = icmp_packet(data)
+      zero = struct.pack('>h',0)
+      dest_ip = socket.inet_ntoa(raw_data[30:34])
+      ip_bytes = socket.inet_aton(ni.ifaddresses(addr[0])[2][0]['addr']
+      ip_notbytes = ni.ifaddresses(addr[0])[2][0]['addr']
+      table = _RtTable(addr[0])
+      router1 = _RtTable('r1')
+      router2 = _RtTable('r2')
+      
+      print(addr)
+      for entry in table:
+        if(entry is not ''):
+          check = re.split(' - | ', entry)
+          if IPAddress(dest_ip) in IPNetwork(check[0]):
+            if(check[0] == "10.3.0.0/16"):
+              ans = sr1(ARP(op=ARP.who_has, psrc=ip_notbytes, pdst=check[1]))
+            if(check[0] == "10.1.0.0/16"):
+              ans = sr1(ARP(op=ARP.who_has, psrc=ip_notbytes, pdst=check[1]))
+
+      #for entry in router2:
+      #if(entry is not ''):
+        #check = re.split(' - | ', entry)
+        #if IPAddress(dest_ip) in IPNetwork(check[0]):
+
+      conn.sendto(raw_data[6:12] + raw_data[0:6] + raw_data[12:26] + raw_data[30:34] + raw_data[26:30] + zero[1:] + raw_data[35:], addr)
+
+def icmp_packet(data):
+  pktFormat = 'bbHHhd'
+  pktSize = struct.calcsize(pktFormat)
+  icmp_type, code, checksum, packet_id, sequence, timesent = struct.unpack("bbHHhd", data[:pktSize])
+  return icmp_type, code, checksum, packet_id, sequence, data[pktSize:]
+
+def ethernet(data):
+  dest_mac, src_mac, proto = struct.unpack('!6s 6s H', data[:14])
+  return dest_mac, src_mac, socket.htons(proto), data[14:]
+
+def get_mac_addr(bytes_addr):
+  bytes_str = map('{:02x}'.format, bytes_addr)
+  return ':'.join(bytes_str).upper()
+
+def ipv4_packet(data):
+  version_header_length= data[0]
+  version = version_header_length >> 4
+  header_length = (version_header_length & 15) * 4
+  ttl, proto, src, target = struct.unpack(' 8x B B 2x 4s 4s', data[:20])
+  return version, header_length, ttl, proto, ipv4(src), ipv4(target), data[header_length:]
+
+def ipv4(addr):
+  return '.'.join(map(str,addr))
+
+def _RtTable(s):
+  _rt = []
+  count = 0
+  if('r1' in s):
+    print(s)
+    rt = open('r1-table.txt', 'r')
+    for line in rt.read().split('\n'):
+      _rt.append(line)
+    rt.close()
+  if('r2' in s):
+    print(s)
+    rt = open('r2-table.txt', 'r')
+    for line in rt.read().split('\n'):
+      _rt.append(line)
+    rt.close()
+  return _rt
+
+class hexstr(str):
+  def __repr__(self):
+    return ''.join('%02x' % ord(c) for c in self)
+
+master()
