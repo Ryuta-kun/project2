@@ -66,14 +66,44 @@ def icmp():
         router1 = _RtTable('r1')
         router2 = _RtTable('r2')
         eh = re.split('-',addr[0])
-   
+        #print(type(ttl)) 
         blah = False
+        one = struct.pack('>h',(ttl-1))
+        superblah = binascii.hexlify(raw_data[14:15]).decode('ascii')
+        #print(superblah)
+        firstint = int(superblah[0:1])
+        secondint = int(superblah[1:])
+        headerlength = firstint * secondint
+        header = {}
+
+        header[0] = int(binascii.hexlify(raw_data[14:15]).decode('ascii'), 16)
+        header[1] = int(binascii.hexlify(raw_data[15:16]).decode('ascii'), 16)
+        header[2] = int(binascii.hexlify(raw_data[16:17]).decode('ascii'), 16)
+        header[3] = int(binascii.hexlify(raw_data[17:18]).decode('ascii'), 16)
+        header[4] = int(binascii.hexlify(raw_data[18:19]).decode('ascii'), 16)
+        header[5] = int(binascii.hexlify(raw_data[19:20]).decode('ascii'), 16)
+        header[6] = int(binascii.hexlify(raw_data[20:21]).decode('ascii'), 16)
+        header[7] = int(binascii.hexlify(raw_data[21:22]).decode('ascii'), 16)
+        header[8] = int(binascii.hexlify(one[1:]).decode('ascii'), 16)
+        header[9] = int(binascii.hexlify(raw_data[23:24]).decode('ascii'), 16)
+        header[10] =int(binascii.hexlify(raw_data[26:27]).decode('ascii'), 16)
+        header[11] = int(binascii.hexlify(raw_data[27:28]).decode('ascii'), 16)
+        header[12] = int(binascii.hexlify(raw_data[28:29]).decode('ascii'), 16)
+        header[13] = int(binascii.hexlify(raw_data[29:30]).decode('ascii'), 16)
+        header[14] = int(binascii.hexlify(raw_data[30:31]).decode('ascii'), 16)
+        header[15] = int(binascii.hexlify(raw_data[31:32]).decode('ascii'), 16)
+        header[16] = int(binascii.hexlify(raw_data[32:33]).decode('ascii'), 16)
+        header[17] = int(binascii.hexlify(raw_data[33:34]).decode('ascii'), 16)
+        newchecksum = ip_checksum(header, len(header))
+        print(newchecksum)
+        checksumpack = struct.pack('>H', newchecksum)
         for i in ip_list:
           if socket.inet_ntoa(raw_data[30:34]) == i:
             blah = True
         if raw_data[34:35] == b'\x08':
+         # checksumpack = raw_data[24:26]
           if blah == True:
-            conn.sendto(raw_data[6:12] + raw_data[0:6] + raw_data[12:26] + raw_data[30:34] + raw_data[26:30] + zero[1:] + raw_data[35:], addr)
+            conn.sendto(raw_data[6:12] + raw_data[0:6] + raw_data[12:22] + one[1:] + raw_data[23:24] + checksumpack + raw_data[30:34] + raw_data[26:30] + zero[1:] + raw_data[35:], addr)
           else:
             if eh[0] == 'r1':
             
@@ -91,7 +121,7 @@ def icmp():
                       #print(temp)
 
                       #conn.sendto(bytes.fromhex(ans[0][ARP].hwsrc.replace(':', '')) + raw_data[6:], temp)
-                      conn.sendto(raw_data, temp)
+                      conn.sendto(raw_data[0:22] + one[1:] + raw_data[23:24] + checksumpack + raw_data[26:], temp)
                     else:
                       # print(check[2] + addr[1:])
                       temp = addr
@@ -102,7 +132,7 @@ def icmp():
                       #print(ans[0][ARP].hwsrc.replace(':', ''))
                       #print(nmac)
                       #ans = sr1(ARP(op=ARP.who_has, psrc=ip_notbytes, pdst=check[1]))
-                      conn.sendto(raw_data[6:12] + bytes.fromhex(ans[0][ARP].hwsrc.replace(':', '')) + raw_data[12:26] + raw_data[30:34] + raw_data[26:30] + zero[1:] + raw_data[35:], addr)
+                      conn.sendto(raw_data[6:12] + bytes.fromhex(ans[0][ARP].hwsrc.replace(':', '')) + raw_data[12:22] + one[1:] + raw_data[23:24] + checksumpack + raw_data[30:34] + raw_data[26:30] + zero[1:] + raw_data[35:], addr)
                       #conn.sendto(raw_data, temp)
             if eh[0] == 'r2':
               for entry in router2:
@@ -115,7 +145,9 @@ def icmp():
                       lst[0] = check[2]
                       temp = tuple(lst)
                       ans = sr1(ARP(op=ARP.who_has, psrc=dest_ip, pdst=check[1]))
-                      conn.sendto(raw_data, temp)
+                      conn.sendto(raw_data[0:22] + one[1:] + raw_data[23:24] + checksumpack + raw_data[26:], temp)
+                      #conn.sendto(raw_data[0:22] + one[1:] + raw_data[23:], temp)
+                      #conn.sendto(raw_data, temp)
                     else:
                       temp = addr
                       lst = list(temp)
@@ -125,13 +157,15 @@ def icmp():
                       #print(ans[0][ARP].hwsrc.replace(':', ''))
                       #print(nmac)
                       #ans = sr1(ARP(op=ARP.who_has, psrc=ip_notbytes, pdst=check[1]))
-                      conn.sendto(raw_data[6:12] + bytes.fromhex(ans[0][ARP].hwsrc.replace(':', '')) + raw_data[12:26] + raw_data[30:34] + raw_data[26:30] + zero[1:] + raw_data[35:], addr)
+                      #conn.sendto(raw_data[6:12] + bytes.fromhex(ans[0][ARP].hwsrc.replace(':', '')) + raw_data[12:26] + raw_data[30:34] + raw_data[26:30] + zero[1:] + raw_data[35:], addr)
+                      conn.sendto(raw_data[6:12] + bytes.fromhex(ans[0][ARP].hwsrc.replace(':', '')) + raw_data[12:22] + one[1:] + raw_data[23:24] + checksumpack + raw_data[30:34] + raw_data[26:30] + zero[1:] + raw_data[35:], addr)
+                      #conn.sendto(raw_data[6:12] + bytes.fromhex(ans[0][ARP].hwsrc.replace(':', '')) + raw_data[12:22] + one[1:] + raw_data[23:26] + raw_data[30:34] + raw_data[26:30] + zero[1:] + raw_data[35:], addr)
                       #ans = sr1(ARP(op=ARP.who_has, psrc=ip_notbytes, pdst=dest_ip))
                       #conn.sendto(raw_data, temp)
         #print(addr)
         #print(ip_list)
        # print(blah)
-        if blah == False and raw_data[34:35] == b'\x00':
+        if (blah == False and raw_data[34:35] == b'\x00') or (blah == False and raw_data[34:35] == b'\x03'):
           for entry in table:
             if(entry is not ''):
               check = re.split(' - | ', entry)
@@ -141,7 +175,9 @@ def icmp():
                 lst = list(temp)
                 lst[0] = check[1]
                 temp = tuple(lst)
-                conn.sendto(raw_data, temp)
+                conn.sendto(raw_data[0:22] + one[1:] + raw_data[23:24] + checksumpack + raw_data[26:], temp)
+                #conn.sendto(raw_data[0:22] + one[1:] + raw_data[23:], temp)
+                #conn.sendto(raw_data, temp)
       #  for entry in table:
       #    if(entry is not ''):
       #      check = re.split(' - | ', entry)
@@ -201,5 +237,25 @@ def _RtTable(s):
 class hexstr(str):
   def __repr__(self):
     return ''.join('%02x' % ord(c) for c in self)
+
+def ip_checksum(ip_header, size):
+    
+    cksum = 0
+    pointer = 0
+    
+    #The main loop adds up each set of 2 bytes. They are first converted to strings and then concatenated
+    #together, converted to integers, and then added to the sum.
+    while size > 1:
+        cksum += int((str("%02x" % (ip_header[pointer],)) + 
+                      str("%02x" % (ip_header[pointer+1],))), 16)
+        size -= 2
+        pointer += 2
+    if size: #This accounts for a situation where the header is odd
+        cksum += ip_header[pointer]
+        
+    cksum = (cksum >> 16) + (cksum & 0xffff)
+    cksum += (cksum >>16)
+    
+    return (~cksum) & 0xFFFF
 
 master()
