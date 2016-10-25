@@ -68,6 +68,8 @@ def icmp():
         eh = re.split('-',addr[0])
         #print(type(ttl)) 
         blah = False
+        if ttl-1 == 0:
+          zero = struct.pack('>h',11)
         one = struct.pack('>h',(ttl-1))
         superblah = binascii.hexlify(raw_data[14:15]).decode('ascii')
         #print(superblah)
@@ -117,7 +119,10 @@ def icmp():
                       lst = list(temp)
                       lst[0] = check[2]
                       temp = tuple(lst)
-                      ans = sr1(ARP(op=ARP.who_has, psrc=ip_notbytes, pdst=check[1]))
+                      #ans = sr1(ARP(op=ARP.who_has, psrc=ip_notbytes, pdst=check[1]))
+                      results, unans = sr(ARP(op=ARP.who_has, psrc=ip_notbytes, pdst=check[1]))
+                      result = results[0]
+                      original, ans = result
                       #print(temp)
 
                       #conn.sendto(bytes.fromhex(ans[0][ARP].hwsrc.replace(':', '')) + raw_data[6:], temp)
@@ -128,7 +133,12 @@ def icmp():
                       lst = list(temp)
                       lst[0] = check[1]
                       temp = tuple(lst)
-                      ans = sr1(ARP(op=ARP.who_has, psrc=ip_notbytes, pdst=dest_ip))
+                      #ans = sr1(ARP(op=ARP.who_has, psrc=ip_notbytes, pdst=dest_ip))
+                      results, unans = sr(ARP(op=ARP.who_has, psrc=ip_notbytes, pdst=dest_ip))
+                      result = results[0]
+                      original, ans = result
+                      if unans:
+                        zero = struct.pack('>h', 3)
                       #print(ans[0][ARP].hwsrc.replace(':', ''))
                       #print(nmac)
                       #ans = sr1(ARP(op=ARP.who_has, psrc=ip_notbytes, pdst=check[1]))
@@ -144,7 +154,10 @@ def icmp():
                       lst = list(temp)
                       lst[0] = check[2]
                       temp = tuple(lst)
-                      ans = sr1(ARP(op=ARP.who_has, psrc=dest_ip, pdst=check[1]))
+                      #ans = sr1(ARP(op=ARP.who_has, psrc=dest_ip, pdst=check[1]))
+                      results, unans = sr(ARP(op=ARP.who_has, psrc=ip_notbytes, pdst=check[1]))
+                      result = results[0]
+                      original, ans = result
                       conn.sendto(raw_data[0:22] + one[1:] + raw_data[23:24] + checksumpack + raw_data[26:], temp)
                       #conn.sendto(raw_data[0:22] + one[1:] + raw_data[23:], temp)
                       #conn.sendto(raw_data, temp)
@@ -153,7 +166,11 @@ def icmp():
                       lst = list(temp)
                       lst[0] = check[1]
                       temp = tuple(lst)
-                      ans = sr1(ARP(op=ARP.who_has, psrc=ip_notbytes, pdst=dest_ip))
+                      results, unans = sr(ARP(op=ARP.who_has, psrc=ip_notbytes, pdst=dest_ip))
+                      result = results[0]
+                      original, ans = result
+                      if unans:
+                        zero = struct.pack('>h', 3)
                       #print(ans[0][ARP].hwsrc.replace(':', ''))
                       #print(nmac)
                       #ans = sr1(ARP(op=ARP.who_has, psrc=ip_notbytes, pdst=check[1]))
@@ -165,7 +182,7 @@ def icmp():
         #print(addr)
         #print(ip_list)
        # print(blah)
-        if (blah == False and raw_data[34:35] == b'\x00') or (blah == False and raw_data[34:35] == b'\x03'):
+        if (blah == False and raw_data[34:35] == b'\x00') or (blah == False and raw_data[34:35] == b'\x03') or (blah == False and raw_data[34:35] == b'\x11'):
           for entry in table:
             if(entry is not ''):
               check = re.split(' - | ', entry)
