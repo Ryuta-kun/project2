@@ -71,7 +71,7 @@ def icmp():
         for i in ip_list:
           if socket.inet_ntoa(raw_data[30:34]) == i:
             blah = True
-        if blah == True:
+        if blah == True and raw_data[34:35] == b'\x08':
           conn.sendto(raw_data[6:12] + raw_data[0:6] + raw_data[12:26] + raw_data[30:34] + raw_data[26:30] + zero[1:] + raw_data[35:], addr)
         else:
           print(eh[0])
@@ -88,32 +88,49 @@ def icmp():
                     temp = addr
                     lst = list(temp)
                     lst[0] = check[2]
+                    lst[4] = l
                     temp = tuple(lst)
-                    conn.sendto(raw_data, temp)
+                    ans = sr1(ARP(op=ARP.who_has, psrc=ip_notbytes, pdst=check[1]))
+                    print(temp)
+
+                    conn.sendto(bytes.fromhex(ans[0][ARP].hwsrc.replace(':', '')) + raw_data[6:], temp)
+                    #conn.sendto(raw_data, temp)
                   else:
                    # print(check[2] + addr[1:])
                     temp = addr
                     lst = list(temp)
                     lst[0] = check[1]
                     temp = tuple(lst)
-                    conn.sendto(raw_data, temp)
+                    ans = sr1(ARP(op=ARP.who_has, psrc=ip_notbytes, pdst=dest_ip))
+                    #print(ans[0][ARP].hwsrc.replace(':', ''))
+                    #print(nmac)
+                    #ans = sr1(ARP(op=ARP.who_has, psrc=ip_notbytes, pdst=check[1]))
+                    conn.sendto(raw_data[6:12] + bytes.fromhex(ans[0][ARP].hwsrc.replace(':', '')) + raw_data[12:26] + raw_data[30:34] + raw_data[26:30] + zero[1:] + raw_data[35:], addr)
+                    #conn.sendto(raw_data, temp)
           if eh[0] == 'r2':
             for entry in router2:
               if(entry is not ''):
                 check = re.split(' - | ', entry)
-              if IPAddress(dest_ip) in IPNetwork(check[0]):
-                if(check[0] == "10.1.0.0/16"):
-                  temp = addr
-                  lst = list(temp)
-                  lst[0] = check[2]
-                  temp = tuple(lst)
-                  conn.sendto(raw_data, temp)
-                else:
-                  temp = addr
-                  lst = list(temp)
-                  lst[0] = check[1]
-                  temp = tuple(lst)
-                  conn.sendto(raw_data, temp)
+                if IPAddress(dest_ip) in IPNetwork(check[0]):
+                  if(check[0] == "10.1.0.0/16"):
+                    temp = addr
+                    lst = list(temp)
+                    lst[0] = check[2]
+                    temp = tuple(lst)
+                    ans = sr1(ARP(op=ARP.who_has, psrc=dest_ip, pdst=check[1]))
+                    conn.sendto(raw_data, temp)
+                  else:
+                    temp = addr
+                    lst = list(temp)
+                    lst[0] = check[1]
+                    temp = tuple(lst)
+                    ans = sr1(ARP(op=ARP.who_has, psrc=ip_notbytes, pdst=dest_ip))
+                    #print(ans[0][ARP].hwsrc.replace(':', ''))
+                    #print(nmac)
+                    #ans = sr1(ARP(op=ARP.who_has, psrc=ip_notbytes, pdst=check[1]))
+                    conn.sendto(raw_data[6:12] + bytes.fromhex(ans[0][ARP].hwsrc.replace(':', '')) + raw_data[12:26] + raw_data[30:34] + raw_data[26:30] + zero[1:] + raw_data[35:], addr)
+                    #ans = sr1(ARP(op=ARP.who_has, psrc=ip_notbytes, pdst=dest_ip))
+                    #conn.sendto(raw_data, temp)
 
       #  for entry in table:
       #    if(entry is not ''):
