@@ -1,0 +1,9 @@
+import re
+from uuid import getnode as get_mac
+mac = get_mac()
+nmac = str(hex(mac))
+nmac = nmac[2:]
+nmac = nmac[:-1]
+
+nmac =  ':'.join(re.findall('..', nmac))
+print nmac

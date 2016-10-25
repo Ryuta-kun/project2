@@ -44,11 +44,16 @@ def arp():
         blah = False
 
 def icmp():
+  ip_list = []
+  for interface in ni.interfaces():
+    for link in ni.ifaddresses(interface)[AF_INET]:
+      ip_list.append(link['addr'])
+
   conn = socket.socket(socket.AF_PACKET, socket.SOCK_RAW, socket.ntohs(3))
   while True:
     raw_data, addr = conn.recvfrom(65535)
     dest_mac, src_mac, eth_proto, data = ethernet(raw_data)
-    if eth_proto == 0:
+    if eth_proto == 8:
       (version, header_length, ttl, proto, src, target, data) = ipv4_packet(data)
 
       if proto == 1:
@@ -60,23 +65,70 @@ def icmp():
         table = _RtTable(addr[0])
         router1 = _RtTable('r1')
         router2 = _RtTable('r2')
-      
-        print(addr)
-        for entry in table:
-          if(entry is not ''):
-            check = re.split(' - | ', entry)
-            if IPAddress(dest_ip) in IPNetwork(check[0]):
-              if(check[0] == "10.3.0.0/16"):
-                ans = sr1(ARP(op=ARP.who_has, psrc=ip_notbytes, pdst=check[1]))
-              if(check[0] == "10.1.0.0/16"):
-                ans = sr1(ARP(op=ARP.who_has, psrc=ip_notbytes, pdst=check[1]))
+        eh = re.split('-',addr[0])
+   
+        blah = False
+        for i in ip_list:
+          if socket.inet_ntoa(raw_data[30:34]) == i:
+            blah = True
+        if blah == True:
+          conn.sendto(raw_data[6:12] + raw_data[0:6] + raw_data[12:26] + raw_data[30:34] + raw_data[26:30] + zero[1:] + raw_data[35:], addr)
+        else:
+          print(eh[0])
+          print(eh[0] == 'r1')
+          print(eh[0] == 'r2')
+          if eh[0] == 'r1':
+            
+            for entry in router1:
+              if(entry is not ''):
+                check = re.split(' - | ', entry)
+                if IPAddress(dest_ip) in IPNetwork(check[0]):
+                  if(check[0] == "10.3.0.0/16"):
+                   # print(check[2] + addr[1:])
+                    temp = addr
+                    lst = list(temp)
+                    lst[0] = check[2]
+                    temp = tuple(lst)
+                    conn.sendto(raw_data, temp)
+                  else:
+                   # print(check[2] + addr[1:])
+                    temp = addr
+                    lst = list(temp)
+                    lst[0] = check[1]
+                    temp = tuple(lst)
+                    conn.sendto(raw_data, temp)
+          if eh[0] == 'r2':
+            for entry in router2:
+              if(entry is not ''):
+                check = re.split(' - | ', entry)
+              if IPAddress(dest_ip) in IPNetwork(check[0]):
+                if(check[0] == "10.1.0.0/16"):
+                  temp = addr
+                  lst = list(temp)
+                  lst[0] = check[2]
+                  temp = tuple(lst)
+                  conn.sendto(raw_data, temp)
+                else:
+                  temp = addr
+                  lst = list(temp)
+                  lst[0] = check[1]
+                  temp = tuple(lst)
+                  conn.sendto(raw_data, temp)
+
+      #  for entry in table:
+      #    if(entry is not ''):
+      #      check = re.split(' - | ', entry)
+      #      if IPAddress(dest_ip) in IPNetwork(check[0]):
+      #        if(check[0] == "10.3.0.0/16"):
+      #          ans = sr1(ARP(op=ARP.who_has, psrc=ip_notbytes, pdst=check[1]))
+      #        if(check[0] == "10.1.0.0/16"):
+      #          ans = sr1(ARP(op=ARP.who_has, psrc=ip_notbytes, pdst=check[1]))
 
         #for entry in router2:
           #if(entry is not ''):
             #check = re.split(' - | ', entry)
             #if IPAddress(dest_ip) in IPNetwork(check[0]):
-
-        conn.sendto(raw_data[6:12] + raw_data[0:6] + raw_data[12:26] + raw_data[30:34] + raw_data[26:30] + zero[1:] + raw_data[35:], addr)
+        
 
 def icmp_packet(data):
   pktFormat = 'bbHHhd'
@@ -106,13 +158,13 @@ def _RtTable(s):
   _rt = []
   count = 0
   if('r1' in s):
-    print(s)
+   # print(s)
     rt = open('r1-table.txt', 'r')
     for line in rt.read().split('\n'):
       _rt.append(line)
     rt.close()
   if('r2' in s):
-    print(s)
+   # print(s)
     rt = open('r2-table.txt', 'r')
     for line in rt.read().split('\n'):
       _rt.append(line)
